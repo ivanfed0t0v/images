@@ -1,0 +1,15 @@
+FROM docker.io/library/debian:11-slim
+
+LABEL org.opencontainers.image.source https://github.com/ivanfed0t0v/images
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl ca-certificates \
+        libc-ares2 \
+        libpcrecpp0v5 \
+        gpg && \
+    curl -Lo megacmd.deb https://mega.nz/linux/repo/Debian_11/amd64/megacmd-Debian_11_amd64.deb && \
+    dpkg -i megacmd.deb && \
+    rm megacmd.deb && \
+    rm -rf /var/lib/apt/lists
+
+ENTRYPOINT ["/usr/sbin/mega-cmd"]
