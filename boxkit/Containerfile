@@ -1,0 +1,27 @@
+FROM quay.io/toolbx-images/alpine-toolbox:edge
+
+LABEL org.opencontainers.image.source="https://github.com/ivanfed0t0v/images" \
+      com.github.containers.toolbox="true" \
+      usage="This image is meant to be used with the toolbox or distrobox command" \
+      summary="A cloud-native terminal experience" \
+      maintainer="github.com/ivanfed0t0v"
+
+RUN apk upgrade --available --update-cache && \
+        apk add \
+        age \
+        btop \
+        bat \
+        clipboard \
+        direnv \
+        exa \
+        fish \
+        neovim \
+        python3 \
+        ripgrep \
+        starship \
+        wl-clipboard && \
+    rm -rf /var/cache/apk/*
+
+RUN ln -fs /bin/sh /usr/bin/sh && \
+    ln -fs /usr/bin/distrobox-host-exec /usr/local/bin/flatpak && \ 
+    ln -fs /usr/bin/distrobox-host-exec /usr/local/bin/podman
