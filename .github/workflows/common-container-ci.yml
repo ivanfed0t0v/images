@@ -1,0 +1,73 @@
+name: Build container and push to the registry
+on:
+  workflow_call:
+    inputs:
+      container_registry:
+        type: string
+        description: Container registry url, e.g. docker.io/library
+        default: "ghcr.io/ivanfed0t0v"
+      container_repository:
+        type: string
+        description: Container repository name, e.g. python
+        required: true
+      container_build_context:
+        type: string
+        description: Container build context
+        default: .
+      container_file_path:
+        type: string
+        description: Path to the Containerfile or Dockerfile
+        default: 
+      container_build_args:
+        type: string
+        description: Container build arguments
+        default: ""
+      container_tag_prefix:
+        type: string
+        description: Container tag prefix, e.g. main
+        default: "{{branch}}"
+
+jobs:
+  build_and_push:
+    name: Build and push container
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ${{ format('{0}/{1}', inputs.container_registry, inputs.container_repository) }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.container_tag_prefix }}-{{sha}}-{{date 'YYYYMMDD-hhmmss'}}
+      -
+        name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ inputs.container_build_context }}
+          file: ${{ inputs.container_file_path || format('{0}/Containerfile', inputs.container_build_context) }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: ${{ inputs.container_build_args }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

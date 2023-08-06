@@ -1,0 +1,21 @@
+name: megacmd ci
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/common-container-ci.yml
+      - .github/workflows/megacmd-ci.yml
+      - megacmd
+  schedule: 
+    - cron: '0 5 * * SAT'
+  workflow_dispatch:
+
+jobs:
+  build_and_push:
+    uses: ./.github/workflows/common-container-ci.yml
+    with:
+      container_repository: megacmd
+      container_build_context: megacmd
+    permissions:
+      contents: read
+      packages: write
