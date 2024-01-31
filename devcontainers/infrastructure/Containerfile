@@ -1,0 +1,64 @@
+FROM docker.io/library/alpine:latest
+
+ENV HOME=/home/dev
+RUN apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/community/ \
+      coreutils python3 openssh-client openssl gpg gpg-agent git curl jq fish libsecret mise bash k9s starship && \
+    addgroup --system --gid 1000 dev && \
+    adduser -D --uid 1000 -G dev --shell /bin/fish dev && \
+    mkdir -p ${HOME}/.local/state && mkdir -p ${HOME}/.local/share && \
+    chown -R dev:dev ${HOME}
+
+USER 1000:1000
+
+COPY --chown=dev:dev <<EOF ${HOME}/.config/fish/conf.d/hooks.fish
+if status is-interactive
+  mise activate fish | source
+  starship init fish | source
+else
+  mise activate fish --shims | source
+end
+EOF
+
+LABEL org.opencontainers.image.source https://github.com/ivanfed0t0v/images
+
+LABEL devcontainer.metadata='[{ \
+  "overrideCommand": false, \
+  "containerUser": "dev", \
+  "privileged": false, \
+  "updateRemoteUserUID": false, \
+  "containerEnv": { \
+    "DBUS_SESSION_BUS_ADDRESS": "${localEnv:DBUS_SESSION_BUS_ADDRESS}" \
+  }, \
+  "remoteEnv": { \
+    "PATH": "${containerEnv:HOME}/.local/share/mise/shims:${containerEnv:PATH}" \
+  }, \
+  "mounts": [ \
+    "source=${localEnv:HOME}/.local/share/fish,target=/home/dev/.local/share/fish,type=bind", \
+    "source=${localEnv:HOME}/.kube,target=/home/dev/.kube,type=bind", \
+    "source=/run/user/1000/bus,target=/run/user/1000/bus,type=bind", \
+    "source=${localEnv:HOME}/.config/sops,target=/home/dev/.config/sops,type=bind", \
+    "source=${localEnv:HOME}/.config/starship.toml,target=/home/dev/.config/starship.toml,type=bind", \
+    "source=${localEnv:HOME}/.local/share/k9s,target=/home/dev/.local/share/k9s,type=bind", \
+    "source=${localEnv:HOME}/.config/k9s,target=/home/dev/.config/k9s,type=bind" \
+  ], \
+  "customizations": { \
+    "vscode": { \
+      "settings": { \
+        "terminal.integrated.profiles.linux": { \
+          "fish": { "path": "/usr/bin/fish" } \
+        }, \
+        "terminal.integrated.defaultProfile.linux": "fish" \
+      }, \
+      "extensions": [ \
+        "mhutchie.git-graph", \
+        "weaveworks.vscode-gitops-tools", \
+        "hashicorp.terraform", \
+        "ms-kubernetes-tools.vscode-kubernetes-tools", \
+        "redhat.vscode-yaml", \
+        "timonwong.shellcheck" \
+      ] \
+    } \
+  } \
+}]'
+
+CMD ["sleep", "infinity"]
